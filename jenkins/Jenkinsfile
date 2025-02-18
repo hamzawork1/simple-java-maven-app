@@ -1,30 +1,41 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.9.0'
-            args '-v /root/.m2:/root/.m2'
-        }
+    agent any
+    environment {
+        JAVA_HOME = "/opt/java/openjdk"
+        MAVEN_HOME = "/opt/maven/apache-maven-3.9.2"
+        PATH = "${JAVA_HOME}/bin:${MAVEN_HOME}/bin:${PATH}"
     }
     stages {
-        stage('Build') {
+        stage("clean Up"){
             steps {
-                sh 'mvn -B -DskipTests clean package'
+                deleteDir() //Jenkins workspace folder ko clean karega
+            }
+        }        
+        stage("Clone Repo"){
+            steps{
+                //sh "rm -rf simple-java-maven-app" // Pehle folder delete karega
+                sh "git clone https://github.com/jenkins-docs/simple-java-maven-app.git" // Ye directly repo se code pull karega
             }
         }
-        stage('Test') {
-            steps {
-                sh 'mvn test'
-            }
-            post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
-                }
-            }
-        }
-        stage('Deliver') {
-            steps {
-                sh './jenkins/scripts/deliver.sh'
+        //stage("maven path"){
+        //    steps{
+        //        sh 'which mvn'
+        //        sh 'echo $PATH'
+        //        sh 'mvn -version'
+        //    }
+        stage ("build"){
+            steps{
+                dir('simple-java-maven-app') { // Ye ensure karega ke build isi folder me ho
+                    sh 'mvn clean install'  // Maven ka build command run hoga
+                } 
             }
         }
-    }
+        stage ("Test"){
+            steps{
+                dir('simple-java-maven-app') { // Ye ensure karega ke build isi folder me ho
+                    sh 'mvn test'  // Runs Maven tests defined in `pom.xml`
+                } 
+            }
+        }
+    }   
 }
